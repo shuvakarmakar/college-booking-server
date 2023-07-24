@@ -159,16 +159,83 @@ async function run() {
         // API endpoint to get admission details with reviews and ratings
         app.get("/admissions-with-reviews", async (req, res) => {
             try {
-              const admissionsWithReviews = await admissionCollection
-                .find({ reviews: { $exists: true, $not: { $size: 0 } } })
-                .toArray();
-          
-              res.json(admissionsWithReviews);
+                const admissionsWithReviews = await admissionCollection
+                    .find({ reviews: { $exists: true, $not: { $size: 0 } } })
+                    .toArray();
+
+                res.json(admissionsWithReviews);
             } catch (error) {
-              console.error("Error fetching admission details with reviews:", error);
-              res.status(500).json({ error: "An internal server error occurred." });
+                console.error("Error fetching admission details with reviews:", error);
+                res.status(500).json({ error: "An internal server error occurred." });
             }
-          });
+        });
+
+
+        // Get user profile data based on user's email
+        app.get("/api/profile", async (req, res) => {
+            const userEmail = req.query.email; 
+            try {
+                const admissionData = await admissionCollection.findOne({ candidateEmail: userEmail });
+                if (!admissionData) {
+                    return res.status(404).json({ error: "User not found." });
+                }
+
+                const { candidateName, candidateEmail, address, college } = admissionData;
+
+                const profileData = {
+                    name: candidateName,
+                    email: candidateEmail,
+                    college: college,
+                    address: address,
+                };
+
+                res.json(profileData);
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+                res.status(500).json({ error: "An internal server error occurred." });
+            }
+        });
+
+
+        // Update user profile data in usersCollection
+        app.put("/api/user", async (req, res) => {
+            const userEmail = req.query.email; 
+            const { name, email } = req.body;
+            try {
+                const result = await usersCollection.updateOne(
+                    { email: userEmail },
+                    { $set: { name, email } }
+                );
+                res.json(result);
+            } catch (error) {
+                console.error("Error updating user profile:", error);
+                res.status(500).json({ error: "An internal server error occurred." });
+            }
+        });
+
+        // Update user profile data in admissionCollection
+        app.put("/api/admission", async (req, res) => {
+            const userEmail = req.query.email; 
+            const { candidateName, candidateEmail, college, address } = req.body;
+            try {
+                const result = await admissionCollection.updateOne(
+                    { candidateEmail: userEmail },
+                    {
+                        $set: {
+                            candidateName,
+                            candidateEmail,
+                            college,
+                            address,
+                        },
+                    }
+                );
+                res.json(result);
+            } catch (error) {
+                console.error("Error updating admission data:", error);
+                res.status(500).json({ error: "An internal server error occurred." });
+            }
+        });
+
 
 
 
